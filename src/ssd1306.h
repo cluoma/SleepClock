@@ -33,6 +33,8 @@ public:
     SSD1306(bool rotate_180);
     ~SSD1306();
 
+    void setBrightness(uint8_t brightness);
+
     void render();
     void renderTime(uint8_t hours, uint8_t minutes);
     void renderIcon(Image i);

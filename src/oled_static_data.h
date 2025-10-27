@@ -30,4 +30,8 @@ extern const uint8_t oled_sun[512];
 
 extern const uint8_t oled_moon[512];
 
+extern const uint8_t oled_pm[16];
+
+extern const uint8_t oled_am[16];
+
 #endif // OLED_STATIC_DATA_H

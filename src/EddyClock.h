@@ -30,6 +30,7 @@ private:
     rv3028::rv3028_time_t last_time;
     rv3028::rv3028_time_t wakeup_time;
     rv3028::rv3028_time_t gotosleep_time;
+    bool is_wakeup_time;
 
     button button_hours;
     button button_minutes;

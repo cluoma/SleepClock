@@ -31,6 +31,7 @@ EddyClock::EddyClock(i2c_inst_t * i2c) :
     gotosleep_time = getGotoSleepTime();
     gotosleep_time.seconds = 0;
     oled.renderTime(t.hours, t.minutes);
+    is_wakeup_time = true;
 }
 
 int EddyClock::compareTime(rv3028::rv3028_time_t t1, rv3028::rv3028_time_t t2)
@@ -45,6 +46,28 @@ int EddyClock::compareTime(rv3028::rv3028_time_t t1, rv3028::rv3028_time_t t2)
     return -1;
 }
 
+uint16_t timeToMinutes(rv3028::rv3028_time_t t)
+{
+    return t.hours * 60 + t.minutes;
+}
+
+bool isWakeupTime(rv3028::rv3028_time_t time, rv3028::rv3028_time_t wakeupTime, rv3028::rv3028_time_t gotoSleepTime)
+{
+    auto time_m = timeToMinutes(time);
+    auto wakeupTime_m = timeToMinutes(wakeupTime);
+    auto gotoSleepTime_m = timeToMinutes(gotoSleepTime);
+
+    if (wakeupTime_m <= gotoSleepTime_m)
+    {
+        // Normal range (e.g., 08:00–17:00)
+        return time_m >= wakeupTime_m && time_m < gotoSleepTime_m;
+    }
+    else
+    {
+        // Wrap-around range (e.g., 22:00–06:00)
+        return time_m >= wakeupTime_m || time_m <= gotoSleepTime_m;
+    }
+}
 
 int EddyClock::run()
 {
@@ -53,12 +76,22 @@ int EddyClock::run()
         button_hours.update();
         button_minutes.update();
 
+        auto current_time = rv.getTime();
+        wakeup_time = getWakeupTime();
+        gotosleep_time = getGotoSleepTime();
+        bool isWakeup = isWakeupTime(current_time, wakeup_time, gotosleep_time);
+        if (is_wakeup_time != isWakeup)
+        {
+            is_wakeup_time = isWakeup;
+            oled.setBrightness(is_wakeup_time ? 0xFF : 0x01);
+        }
+
         // Wakeup Time
         if (button_wakeup.update() == button::PRESSED)
         {
             oled.renderIcon(SSD1306::SUN);
             auto t = getWakeupTime();
-            printf("%02u:%02u:%02u\r\n", t.hours, t.minutes, t.seconds);
+            //printf("%02u:%02u:%02u\r\n", t.hours, t.minutes, t.seconds);
             if (timeChanged(t))
                 oled.renderTime(t.hours, t.minutes);
 
@@ -83,7 +116,7 @@ int EddyClock::run()
         {
             oled.renderIcon(SSD1306::MOON);
             auto t = getGotoSleepTime();
-            printf("%02u:%02u:%02u\r\n", t.hours, t.minutes, t.seconds);
+            //printf("%02u:%02u:%02u\r\n", t.hours, t.minutes, t.seconds);
             if (timeChanged(t))
                 oled.renderTime(t.hours, t.minutes);
 
@@ -106,7 +139,7 @@ int EddyClock::run()
         // Regular Time
         else
         {
-            rv.printTime();
+            //rv.printTime();
             auto t = rv.getTime();
             if ( compareTime(t, wakeup_time) == 1 &&   // current time is after wakeup time and before goto sleep time
                  compareTime(t, gotosleep_time) == -1) // if gotosleep is on the same day

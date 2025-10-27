@@ -243,37 +243,35 @@ void SSD1306::renderTime(uint8_t hours, uint8_t minutes)
     uint8_t colon = hour_ones + 16;
     uint8_t minute_tens = colon + 4;
     uint8_t minute_ones = minute_tens + 16;
-    if (hours / 10)
-        renderArea(oled_one, hour_tens, hour_tens+15, 0, 3);
+
+    // Get AM/PM
+    uint8_t hours_ampm;
+    if (hours == 0)
+        hours_ampm = 12;
+    else if (hours > 12)
+        hours_ampm = hours - 12;
+    else
+        hours_ampm = hours;
+
+    if (hours_ampm / 10)
+        renderDigit(1, hour_tens, hour_tens+15);
     else
         renderArea(empty, hour_tens, hour_tens+15, 0, 3);
-
     // hour ones
-    renderDigit(hours % 10, hour_ones, hour_ones+15);
+    renderDigit(hours_ampm % 10, hour_ones, hour_ones+15);
     // minute tens
     renderDigit(minutes / 10, minute_tens, minute_tens+15);
     // minute ones
     renderDigit(minutes % 10, minute_ones, minute_ones+15);
     renderArea(oled_colon, colon, colon+3, 0, 3);
 
+    // am/pm
+    if (hours < 12)
+        renderArea(oled_am, 111, 127, 4, 4);
+    else
+        renderArea(oled_pm, 111, 127, 4, 4);
 
 }
-
-// void ssd1306_render_dma()
-// {
-//     if (!is_render_dma_enabled)
-//             return;
-//
-//     // if DMA is busy just return
-//     if(dma_channel_is_busy(dma_channel))
-//         return;
-//
-//     // Always need to set the Data Stop Signal
-//     oled_buffer[OLED_BUFFER_SIZE - 1] |= I2C_IC_DATA_CMD_STOP_BITS;
-//
-//     dma_channel_set_read_addr(dma_channel, oled_buffer, false);
-//     dma_channel_set_trans_count(dma_channel, OLED_BUFFER_SIZE, true);
-// }
 
 void SSD1306::renderIcon(Image i)
 {
@@ -285,6 +283,15 @@ void SSD1306::renderIcon(Image i)
     {
         renderArea(oled_moon, 0, 63, 0, 7);
     }
+}
+
+void SSD1306::setBrightness(uint8_t brightness)
+{
+    uint8_t cmds[] = {
+        SSD1306_SET_CONTRAST,           // set contrast control
+        brightness
+    };
+    SSD1306_send_cmd_list(cmds, count_of(cmds));
 }
 
 SSD1306::SSD1306(bool rotate_180)
@@ -329,22 +336,6 @@ SSD1306::SSD1306(bool rotate_180)
     SSD1306_send_cmd_list(cmds, count_of(cmds));
     sleep_ms(50);
 
-    // Initialize oled buffer DMA
-    // oled_buffer = (uint16_t *)malloc(OLED_BUFFER_SIZE * 2);
-    // memset(oled_buffer, 0, OLED_BUFFER_SIZE * 2);
-    //
-    // for (uint32_t i = 0; i < OLED_BUFFER_SIZE; i++)
-    // {
-    //     oled_buffer[i] = 0;
-    // }
-    // // set initial values of the oled_buffer, these always need to be sent before the actual data
-    // oled_buffer[0] = (SSD1306_SET_COL_ADDR    << 8) | 0x80;
-    // oled_buffer[1] = (0                       << 8) | 0x80;
-    // oled_buffer[2] = ((SSD1306_WIDTH - 1)     << 8) | 0x80;
-    // oled_buffer[3] = (SSD1306_SET_PAGE_ADDR   << 8) | 0x80;
-    // oled_buffer[4] = (0                       << 8) | 0x80;
-    // oled_buffer[5] = ((SSD1306_NUM_PAGES - 1) << 8) | 0x80;
-    // oled_buffer[6] = 0x40;  // data start signal
     oled_buffer = static_cast<uint8_t *>(malloc(OLED_BUFFER_SIZE));
     memset(oled_buffer, 0x00, OLED_BUFFER_SIZE);
 
