@@ -77,9 +77,9 @@ int EddyClock::run()
         button_minutes.update();
 
         auto current_time = rv.getTime();
-        wakeup_time = getWakeupTime();
-        gotosleep_time = getGotoSleepTime();
+
         bool isWakeup = isWakeupTime(current_time, wakeup_time, gotosleep_time);
+
         if (is_wakeup_time != isWakeup)
         {
             is_wakeup_time = isWakeup;
@@ -90,57 +90,51 @@ int EddyClock::run()
         if (button_wakeup.update() == button::PRESSED)
         {
             oled.renderIcon(SSD1306::SUN);
-            auto t = getWakeupTime();
+
             //printf("%02u:%02u:%02u\r\n", t.hours, t.minutes, t.seconds);
-            if (timeChanged(t))
-                oled.renderTime(t.hours, t.minutes);
+            if (timeChanged(wakeup_time))
+                oled.renderTime(wakeup_time.hours, wakeup_time.minutes);
 
             if (button_hours.pollAction() == button::PRESS)
             {
-                wakeup_time.hours = (t.hours + 1) % 24;
-                wakeup_time.minutes = t.minutes;
+                wakeup_time.hours = (wakeup_time.hours + 1) % 24;
                 wakeup_time.seconds = 0;
-                setWakeupTime((t.hours + 1) % 24, t.minutes);
+                setWakeupTime(wakeup_time.hours, wakeup_time.minutes);
             }
-            t = getWakeupTime();
             if (button_minutes.pollAction() == button::PRESS)
             {
-                wakeup_time.hours = t.hours;
-                wakeup_time.minutes = (t.minutes + 1) % 60;
+                wakeup_time.minutes = (wakeup_time.minutes + 1) % 60;
                 wakeup_time.seconds = 0;
-                setWakeupTime(t.hours, (t.minutes + 1) % 60);
+                setWakeupTime(wakeup_time.hours, wakeup_time.minutes);
             }
         }
         // Goto Sleep Time
         else if (button_sleep.update() == button::PRESSED)
         {
             oled.renderIcon(SSD1306::MOON);
-            auto t = getGotoSleepTime();
+
             //printf("%02u:%02u:%02u\r\n", t.hours, t.minutes, t.seconds);
-            if (timeChanged(t))
-                oled.renderTime(t.hours, t.minutes);
+            if (timeChanged(gotosleep_time))
+                oled.renderTime(gotosleep_time.hours, gotosleep_time.minutes);
 
             if (button_hours.pollAction() == button::PRESS)
             {
-                gotosleep_time.hours = (t.hours + 1) % 24;
-                gotosleep_time.minutes = t.minutes;
+                gotosleep_time.hours = (gotosleep_time.hours + 1) % 24;
                 gotosleep_time.seconds = 0;
-                setGotoSleepTime((t.hours + 1) % 24, t.minutes);
+                setGotoSleepTime(gotosleep_time.hours, gotosleep_time.minutes);
             }
-            t = getGotoSleepTime();
             if (button_minutes.pollAction() == button::PRESS)
             {
-                gotosleep_time.hours = t.hours;
-                gotosleep_time.minutes = (t.minutes + 1) % 60;
+                gotosleep_time.minutes = (gotosleep_time.minutes + 1) % 60;
                 gotosleep_time.seconds = 0;
-                setGotoSleepTime(t.hours, (t.minutes + 1) % 60);
+                setGotoSleepTime(gotosleep_time.hours, gotosleep_time.minutes);
             }
         }
         // Regular Time
         else
         {
             //rv.printTime();
-            auto t = rv.getTime();
+            auto t = current_time;
             if ( compareTime(t, wakeup_time) == 1 &&   // current time is after wakeup time and before goto sleep time
                  compareTime(t, gotosleep_time) == -1) // if gotosleep is on the same day
                 oled.renderIcon(SSD1306::SUN);
@@ -152,16 +146,19 @@ int EddyClock::run()
                 oled.renderTime(t.hours, t.minutes);
             }
 
+            bool button_pressed = false;
             if (button_hours.pollAction() == button::PRESS)
             {
-                rv.setTime((t.hours + 1) % 24, t.minutes, 0);
+                t.hours = (t.hours + 1) % 24;
+                button_pressed = true;
             }
-
-            t = rv.getTime();
             if (button_minutes.pollAction() == button::PRESS)
             {
-                rv.setTime(t.hours, (t.minutes + 1) % 60, 0);
+                t.minutes = (t.minutes + 1) % 60;
+                button_pressed = true;
             }
+            if (button_pressed)
+                rv.setTime(t.hours, t.minutes, 0);
         }
     }
 

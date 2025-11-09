@@ -10,6 +10,8 @@
 #include <hardware/i2c.h>
 #include <pico/time.h>
 
+#include "utils.h"
+
 // The 7-bit I2C ADDRESS of the RV3028
 #define RV3028_ADDR         0x52
 
@@ -286,6 +288,7 @@ uint8_t read_config_eeprom_ram_mirror(i2c_inst_t * i2c, uint8_t eeprom_addr)
 
 bool rv3028::setEepromRegister(uint8_t eeprom_addr, uint8_t val)
 {
+    DEBUG_PRINT("setEepromRegister\r\n");
     if (eeprom_addr > 0x2A)  // max user-accessible EEPROM address
         return false;
 
@@ -311,6 +314,7 @@ bool rv3028::setEepromRegister(uint8_t eeprom_addr, uint8_t val)
 
 uint8_t rv3028::getEepromRegister(uint8_t eeprom_addr)
 {
+    DEBUG_PRINT("getEepromRegister\r\n");
     if (eeprom_addr > 0x2A)  // max user-accessible EEPROM address
         return 0xFF;
 
@@ -380,6 +384,7 @@ void rv3028::oneTimeSetup()
 
 void rv3028::setTime(uint8_t hours, uint8_t minutes, uint8_t seconds)
 {
+    DEBUG_PRINT("setTime\r\n");
     uint8_t buf[4] = {
         RV3028_SECONDS,
         dec_to_bcd(seconds),
@@ -391,6 +396,7 @@ void rv3028::setTime(uint8_t hours, uint8_t minutes, uint8_t seconds)
 
 void rv3028::setDate(uint8_t year, uint8_t month, uint8_t day, uint8_t weekday)
 {
+    DEBUG_PRINT("setDate\r\n");
     uint8_t buf[5] = {
         RV3028_WEEKDAY,
         dec_to_bcd(weekday),
@@ -403,6 +409,7 @@ void rv3028::setDate(uint8_t year, uint8_t month, uint8_t day, uint8_t weekday)
 
 void rv3028::setDateTime(time_t * time)
 {
+    DEBUG_PRINT("setDateTime\r\n");
     struct tm * t = gmtime(time);
     //mktime
     uint8_t buf[8] = {
@@ -420,6 +427,7 @@ void rv3028::setDateTime(time_t * time)
 
 void rv3028::printTime()
 {
+    DEBUG_PRINT("printTime\r\n");
     uint8_t seconds_addr = 0x00;
     uint8_t time[3];
     i2c_write_blocking(_i2c, RV3028_I2C_ADDR, &seconds_addr, 1, true);
@@ -429,6 +437,12 @@ void rv3028::printTime()
 
 rv3028::rv3028_time_t rv3028::getTime()
 {
+    static uint64_t lastGetTimeMs = 0;
+    static rv3028_time_t lastTime = {.seconds = 0, .minutes = 0, .hours = 0};
+    uint64_t now = to_ms_since_boot(get_absolute_time());
+    if (now - lastGetTimeMs < 100)
+        return lastTime;
+
     rv3028_time_t time;
 
     uint8_t seconds_addr = 0x00;
@@ -438,6 +452,11 @@ rv3028::rv3028_time_t rv3028::getTime()
     time.hours = bcd_to_dec(time.hours);
     time.minutes = bcd_to_dec(time.minutes);
     time.seconds = bcd_to_dec(time.seconds);
+
+    lastGetTimeMs = now;
+    lastTime = time;
+
+    DEBUG_PRINT("getTime\r\n");
 
     return time;
 }
