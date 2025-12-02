@@ -14,3 +14,14 @@ In addition to keeping track of the current time of day, the clock has two speci
 * **Wakeup mode** is a specific time that brightens the display and shows a sun picture, indicating it's wakeup time. This mode continues until 'go to sleep' time.
 
 The RV3028 RTC keeps track of the current time of day. The trigger times for special modes are stored in the RV3028's non-volatile user-eeprom. Each of these can be adjusted using 4 push-buttons wired to the microcontroller.
+
+# Wiring
+
+| GPIO     | Type     | Function |
+|----------|----------|------------------|
+| 4        | i2c SDA  | screen and RTC |
+| 5        | i2c SCK  | screen and RTC
+| 9        | button   | increase hours |
+| 10       | button   | increase minutes |
+| 11       | button   | context wakeup time |
+| 12       | button   | context goto sleep time |
